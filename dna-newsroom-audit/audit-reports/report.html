@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNA Newsroom SEO/GEO Audit Report</title>
+  <style>
+    :root {
+      --pass: #22c55e;
+      --warn: #eab308;
+      --fail: #f97316;
+      --critical: #ef4444;
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    header {
+      text-align: center;
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    header .meta { color: var(--text-muted); font-size: 0.875rem; }
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .tab.active { background: var(--pass); color: white; }
+    .domain-content { display: none; }
+    .domain-content.active { display: block; }
+    section {
+      background: var(--bg-card);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+    section h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-pass { background: var(--pass); color: white; }
+    .badge-warn { background: var(--warn); color: black; }
+    .badge-fail { background: var(--fail); color: white; }
+    .badge-critical { background: var(--critical); color: white; }
+    .badge-p0 { background: var(--critical); color: white; }
+    .badge-p1 { background: var(--warn); color: black; }
+    .badge-p2 { background: var(--text-muted); color: white; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .summary-card {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+    .summary-card .value { font-size: 2rem; font-weight: bold; }
+    .summary-card .label { color: var(--text-muted); font-size: 0.875rem; }
+    .bullets { list-style: none; }
+    .bullets li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .bullets li:last-child { border-bottom: none; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+    tr:hover { background: rgba(255,255,255,0.05); }
+    .evidence {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .collapsible {
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .collapsible::after { content: '▼'; font-size: 0.75rem; }
+    .collapsible.collapsed::after { content: '▶'; }
+    .collapsible-content { display: block; margin-top: 1rem; }
+    .collapsible.collapsed + .collapsible-content { display: none; }
+    .finding {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.75rem;
+      border-left: 4px solid var(--border);
+    }
+    .finding.critical { border-left-color: var(--critical); }
+    .finding.fail { border-left-color: var(--fail); }
+    .finding.warn { border-left-color: var(--warn); }
+    .finding h4 { margin-bottom: 0.5rem; }
+    .finding p { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .rec-box {
+      background: var(--bg);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .rec-box h4 { margin-bottom: 0.75rem; }
+    .rec-box .root-cause { color: var(--text-muted); margin-bottom: 0.75rem; }
+    .rec-box .fix { margin-bottom: 0.5rem; }
+    .rec-box .fix strong { color: var(--pass); }
+    .rec-box code {
+      display: block;
+      background: #000;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 DNA Newsroom SEO/GEO Audit Report</h1>
+      <div class="meta">Generated: 2026-01-30T03:02:22.264Z</div>
+    </header>
+    
+    
+    
+    
+    <div class="domain-content active" data-domain="newsroom.dna.online">
+      <!-- Executive Summary -->
+      <section>
+        <h2>Executive Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="value"><span class="badge badge-critical">CRITICAL</span></div>
+            <div class="label">Overall Status</div>
+          </div>
+          <div class="summary-card">
+            <div class="value">12</div>
+            <div class="label">Critical Issues</div>
+          </div>
+          <div class="summary-card">
+            <div class="value">1</div>
+            <div class="label">Failures</div>
+          </div>
+          <div class="summary-card">
+            <div class="value">33</div>
+            <div class="label">Warnings</div>
+          </div>
+          <div class="summary-card">
+            <div class="value">agency</div>
+            <div class="label">Site Mode</div>
+          </div>
+          <div class="summary-card">
+            <div class="value">LOW</div>
+            <div class="label">Inventory Confidence</div>
+          </div>
+        </div>
+        <ul class="bullets">
+          <li>🔴 robots.txt is serving HTML (SPA fallback)</li><li>🔴 No valid sitemap found</li><li>🔴 SPA catch-all fallback detected - critical SEO endpoints compromised</li><li>🔴 70% of pages share identical HTML (shell duplication)</li><li>🔴 7 non-crawlable navigation elements detected</li><li>📊 Inventory: 10 pages discovered (confidence: LOW)</li><li>📝 10 recommended GEO pages missing</li>
+        </ul>
+      </section>
+      
+      <!-- Technical SEO -->
+      <section>
+        <h2 class="collapsible">Technical SEO Blockers (P0)</h2>
+        <div class="collapsible-content">
+          
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> robots.txt returns HTML instead of text/plain</h4>
+      <p>The robots.txt endpoint is serving an HTML page (likely SPA fallback)</p>
+      <p><strong>Why flagged:</strong> Body starts with HTML signature + contains app shell signals: <script\s+src=, jquery, main\.css</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap-index.xml returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap.xml returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap_index.xml returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap.xml.gz returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap_index.xml.gz returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Sitemap https://newsroom.dna.online/sitemap.txt returns HTML</h4>
+      <p>Sitemap endpoint is serving HTML instead of XML</p>
+      <p><strong>Why flagged:</strong> Body signature is HTML, not XML. App shell signals detected.</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> No valid sitemap found</h4>
+      <p>None of the sitemap variants returned valid XML</p>
+      <p><strong>Why flagged:</strong> All sitemap endpoints either returned errors or HTML</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> SPA catch-all fallback detected</h4>
+      <p>Critical SEO endpoints are being served by the SPA fallback/catch-all route</p>
+      <p><strong>Why flagged:</strong> robots.txt hash matches homepage</p>
+    </div>
+  
+          
+          <h4>robots.txt Evidence</h4>
+          <pre class="evidence">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot; /&gt;
+  &lt;title&gt;&lt;/title&gt;
+  &lt;link rel=&quot;stylesheet&quot; href=&quot;https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css&quot; /&gt;
+  &lt;script src=&quot;https://code.jquery.com/jquery-3.6.0.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;https://code.jquery.com/ui/1.13.2/jquery-ui.min.js&quot;&gt;&lt;/script&gt;
+  &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css&quot;</pre>
+          
+          
+          <h4>Sitemap Variants</h4>
+          <table>
+            <thead><tr><th>URL</th><th>Status</th><th>Valid</th><th>URLs</th></tr></thead>
+            <tbody>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap-index.xml</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap.xml</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap_index.xml</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap.xml.gz</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap_index.xml.gz</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+                <tr>
+                  <td>https://newsroom.dna.online/sitemap.txt</td>
+                  <td>200</td>
+                  <td>❌ HTML</td>
+                  <td>0</td>
+                </tr>
+              
+            </tbody>
+          </table>
+          
+        </div>
+      </section>
+      
+      <!-- Crawlability -->
+      <section>
+        <h2 class="collapsible">Crawlability Analysis</h2>
+        <div class="collapsible-content">
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="value">17</div>
+              <div class="label">Internal Links (Home)</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">❌</div>
+              <div class="label">Pagination Found</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">0</div>
+              <div class="label">Valid Listings</div>
+            </div>
+          </div>
+          
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Template placeholders found in navigation</h4>
+      <p>6 links contain template placeholders like {{link}}</p>
+      <p><strong>Why flagged:</strong> Template placeholders indicate client-side rendering without SSR</p>
+    </div>
+  
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Non-crawlable navigation detected</h4>
+      <p>7 navigation elements are not crawlable</p>
+      <p><strong>Why flagged:</strong> placeholder: 6, empty: 1</p>
+    </div>
+  
+    <div class="finding warn">
+      <h4><span class="badge badge-warn">WARN</span> Low internal link count (17)</h4>
+      <p>Expected at least 20 internal links for newsroom page, found 17</p>
+      <p><strong>Why flagged:</strong> Internal anchor count 17 < threshold 20</p>
+    </div>
+  
+    <div class="finding warn">
+      <h4><span class="badge badge-warn">WARN</span> No HTML pagination detected</h4>
+      <p>No pagination links or rel="next/prev" found</p>
+      <p><strong>Why flagged:</strong> Crawlers cannot discover paginated content without HTML links</p>
+    </div>
+  
+    <div class="finding warn">
+      <h4><span class="badge badge-warn">WARN</span> No valid listing pages found</h4>
+      <p>Common listing routes either do not exist or have no real content</p>
+      <p><strong>Why flagged:</strong> https://newsroom.dna.online/news: shell, https://newsroom.dna.online/blog: shell, https://newsroom.dna.online/updates: shell, https://newsroom.dna.online/press: shell, https://newsroom.dna.online/posts: shell, https://newsroom.dna.online/articles: shell, https://newsroom.dna.online/latest: shell</p>
+    </div>
+  
+    <div class="finding warn">
+      <h4><span class="badge badge-warn">WARN</span> Listing pages appear to be shells</h4>
+      <p>7 listing pages have shell characteristics</p>
+      <p><strong>Why flagged:</strong> Empty title or low text content with app shell signals</p>
+    </div>
+  
+        </div>
+      </section>
+      
+      <!-- SPA Detection -->
+      <section>
+        <h2 class="collapsible">SPA/JS-Only Detection</h2>
+        <div class="collapsible-content">
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="value">2</div>
+              <div class="label">Shell Clusters</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">70%</div>
+              <div class="label">Shell Ratio</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">9</div>
+              <div class="label">Soft 404s</div>
+            </div>
+          </div>
+          
+    <div class="finding critical">
+      <h4><span class="badge badge-critical">CRITICAL</span> Shell duplication detected (2 clusters)</h4>
+      <p>7 URLs (70%) share identical HTML</p>
+      <p><strong>Why flagged:</strong> Largest cluster has 4 URLs with same normalized hash</p>
+    </div>
+  
+        </div>
+      </section>
+      
+      <!-- Content Inventory -->
+      <section>
+        <h2 class="collapsible">Content Inventory</h2>
+        <div class="collapsible-content">
+          <p style="margin-bottom: 1rem; color: var(--text-muted);">10 URLs discovered, likely incomplete due to invalid sitemap + shell duplication</p>
+          <table>
+            <thead><tr><th>Type</th><th>Count</th><th>Needs Enhancement</th></tr></thead>
+            <tbody>
+              
+                <tr>
+                  <td>home</td>
+                  <td>1</td>
+                  <td>1</td>
+                </tr>
+              
+                <tr>
+                  <td>other</td>
+                  <td>9</td>
+                  <td>9</td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      <!-- GEO Gaps -->
+      <section>
+        <h2 class="collapsible">GEO Content Gap Analysis</h2>
+        <div class="collapsible-content">
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="value">10</div>
+              <div class="label">Missing Pages</div>
+            </div>
+            <div class="summary-card">
+              <div class="value">0</div>
+              <div class="label">Need Enhancement</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Page</th><th>Status</th><th>Priority</th><th>Rationale</th></tr></thead>
+            <tbody>
+              
+                <tr>
+                  <td>/how-it-works</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Process clarity for conversion and trust</td>
+                </tr>
+              
+                <tr>
+                  <td>/services</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Core offering visibility, conversion</td>
+                </tr>
+              
+                <tr>
+                  <td>/case-studies</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Social proof, E-E-A-T, conversion</td>
+                </tr>
+              
+                <tr>
+                  <td>/faq</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Featured snippets, voice search, GEO answers</td>
+                </tr>
+              
+                <tr>
+                  <td>/contact</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Trust signal, local SEO, conversion point</td>
+                </tr>
+              
+                <tr>
+                  <td>/about</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Establishes E-E-A-T signals for AI indexing and brand trust</td>
+                </tr>
+              
+                <tr>
+                  <td>/privacy</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Legal requirement, trust signal</td>
+                </tr>
+              
+                <tr>
+                  <td>/terms</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p1">P1</span></td>
+                  <td>Legal requirement, trust signal</td>
+                </tr>
+              
+                <tr>
+                  <td>/pricing</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p2">P2</span></td>
+                  <td>Conversion, transparency</td>
+                </tr>
+              
+                <tr>
+                  <td>/team</td>
+                  <td><span class="badge badge-critical">Missing</span></td>
+                  <td><span class="badge badge-p2">P2</span></td>
+                  <td>E-E-A-T signals, authorship credibility</td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </section>
+      
+      <!-- Recommendations -->
+      <section>
+        <h2 class="collapsible">Recommended Fixes</h2>
+        <div class="collapsible-content">
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> No valid XML sitemap is available for search engine discovery</h4>
+              <div class="fix"><strong>Option A (low):</strong> Create a static sitemap.xml file listing all public URLs</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic sitemap generation from CMS/database, with proper lastmod dates and priority hints</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/sitemap.xml | head -3</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> SPA catch-all rewrite is serving the app shell for /robots.txt and /sitemap.xml</h4>
+              <div class="fix"><strong>Option A (low):</strong> Exclude /robots.txt and /sitemap* from the SPA catch-all rewrite in your CDN/origin routing configuration</div>
+              <div class="fix"><strong>Option B (medium):</strong> Serve static robots.txt and sitemap.xml files from origin. Reference sitemap URL in robots.txt. Consider generating sitemap dynamically from your CMS/database.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/robots.txt | head -5</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> Navigation uses JavaScript-only interactions (onclick, buttons) without proper <a href> links</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add <a href="/path"> to all article cards and pagination buttons. Ensure href contains the actual URL.</div>
+              <div class="fix"><strong>Option B (medium):</strong> Server-render full navigation with semantic HTML links. Use <a> tags for all clickable navigation elements.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/ | grep -c '<a href'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> Navigation uses JavaScript-only interactions (onclick, buttons) without proper <a href> links</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add <a href="/path"> to all article cards and pagination buttons. Ensure href contains the actual URL.</div>
+              <div class="fix"><strong>Option B (medium):</strong> Server-render full navigation with semantic HTML links. Use <a> tags for all clickable navigation elements.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/ | grep -c '<a href'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p0">P0</span> Client-side rendering (CSR) without server-side rendering causes all pages to return the same HTML shell</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Pre-render critical pages (home, listings, top 10-20 posts) using static site generation or build-time rendering</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR/SSG for all public routes. Use Next.js, Nuxt, or similar framework with server-side rendering.</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/ | grep -o '<title>.*</title>'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Canonical link element is missing from page HTML</h4>
+              <div class="fix"><strong>Option A (low):</strong> Add <link rel="canonical" href="[self-url]"> to each page template</div>
+              <div class="fix"><strong>Option B (medium):</strong> Implement dynamic canonical generation based on current URL, handling query params and trailing slashes consistently</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'rel="canonical"'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Metadata (title, OG tags) is generated client-side only and not present in initial HTML</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add server-side title, meta description, and OG tags per route in your routing/template configuration</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement full SSR with dynamic metadata based on page content. Use framework meta management (next/head, vue-meta, etc.)</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[page-url] | grep 'og:title'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> JSON-LD structured data is missing or incomplete</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add JSON-LD script with Article schema to post pages, Organization schema to home/about</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement comprehensive schema strategy: Article/NewsArticle for posts, Organization for site, BreadcrumbList for navigation, FAQPage for FAQ</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[post-url] | grep 'application/ld+json'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> JSON-LD structured data is missing or incomplete</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Add JSON-LD script with Article schema to post pages, Organization schema to home/about</div>
+              <div class="fix"><strong>Option B (high):</strong> Implement comprehensive schema strategy: Article/NewsArticle for posts, Organization for site, BreadcrumbList for navigation, FAQPage for FAQ</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s https://newsroom.dna.online/[post-url] | grep 'application/ld+json'</code></div>
+            </div>
+          
+            <div class="rec-box">
+              <h4><span class="badge badge-p1">P1</span> Important pages for AI indexing and trust signals are missing from the site</h4>
+              <div class="fix"><strong>Option A (medium):</strong> Create the missing pages with basic content and proper metadata</div>
+              <div class="fix"><strong>Option B (high):</strong> Create comprehensive pages following the suggested outline, with proper schema markup and internal linking</div>
+              <div class="fix"><strong>Validate:</strong><code>curl -s -o /dev/null -w "%{http_code}" https://newsroom.dna.online/[missing-slug]</code></div>
+            </div>
+          
+        </div>
+      </section>
+    </div>
+  
+  </div>
+  
+  <script>
+    function showDomain(index) {
+      document.querySelectorAll('.domain-content').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+      });
+      document.querySelectorAll('.tab').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+      });
+    }
+    document.querySelectorAll('.collapsible').forEach(el => {
+      el.addEventListener('click', () => el.classList.toggle('collapsed'));
+    });
+  </script>
+</body>
+</html>
