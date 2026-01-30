@@ -359,6 +359,9 @@ function initializeApp() {
 
   // Initialize download links for current domain
   updateDownloadLinks(currentDomain);
+
+  // Add resize listener to update header text
+  window.addEventListener('resize', () => updateDomainData(currentDomain));
 }
 
 function initializeTabs() {
@@ -502,6 +505,19 @@ function updateDomainData(domain) {
 
   // Update KPI values
   updateKPIs(data);
+
+  // Update header text dynamically
+  const headerMainTitle = document.getElementById('header-main-title');
+  const headerSubTitle = document.getElementById('header-sub-title');
+  if (headerMainTitle && headerSubTitle) {
+    if (window.innerWidth <= 768) {
+      headerMainTitle.textContent = domain;
+      headerSubTitle.textContent = 'SEO/GEO Audit Report';
+    } else {
+      headerMainTitle.textContent = 'SEO/GEO Audit Report';
+      headerSubTitle.textContent = `Technical Analysis for ${domain}`;
+    }
+  }
 }
 
 function updateKPIs(data) {
