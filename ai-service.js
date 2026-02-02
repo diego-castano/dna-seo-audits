@@ -1,7 +1,29 @@
 // DNA Newsroom SEO/GEO Audit Assistant - Gemini Integration
 
-const GEMINI_API_KEY = 'AIzaSyAe9NS1Ap704VZqyji8kocF3tfSSak9qDo';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+// Function to get the API Key securely
+function getGeminiApiKey() {
+    // 1. Try to get from localStorage (user settings)
+    const savedKey = localStorage.getItem('GEMINI_API_KEY');
+    if (savedKey) return savedKey;
+
+    // 2. Try to get from config.js (window.CONFIG)
+    if (window.CONFIG && window.CONFIG.GEMINI_API_KEY && !window.CONFIG.GEMINI_API_KEY.includes('YOUR_GEMINI_')) {
+        return window.CONFIG.GEMINI_API_KEY;
+    }
+
+    // 3. Try to get from build-time injection (GitHub Actions)
+    const injectedKey = '__GEMINI_API_KEY__';
+    if (injectedKey && injectedKey !== '__' + 'GEMINI_API_KEY' + '__') {
+        return injectedKey;
+    }
+
+    return null;
+}
+
+function getGeminiUrl() {
+    const key = getGeminiApiKey();
+    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+}
 
 // Helper to sanitize data for AI
 function getAuditContextSummary(domain) {
@@ -20,10 +42,17 @@ function getAuditContextSummary(domain) {
 
 // Function to call Gemini (with CORS proxy fallback for file:// protocol)
 async function callGemini(prompt) {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        console.warn('Gemini API Key missing. Please set it in Settings.');
+        return null;
+    }
+
+    const geminiUrl = getGeminiUrl();
     // Use a CORS proxy when running from file:// to bypass browser restrictions
     const useProxy = window.location.protocol === 'file:';
     const corsProxy = 'https://corsproxy.io/?';
-    const targetUrl = useProxy ? corsProxy + encodeURIComponent(GEMINI_URL) : GEMINI_URL;
+    const targetUrl = useProxy ? corsProxy + encodeURIComponent(geminiUrl) : geminiUrl;
 
     try {
         const response = await fetch(targetUrl, {
@@ -306,7 +335,55 @@ function shareToWhatsApp() {
 document.addEventListener('DOMContentLoaded', () => {
     generateAIInsights();
     injectTooltips();
+    initializeSettings();
 });
+
+// Settings Modal Logic
+function initializeSettings() {
+    const modal = document.getElementById('settings-modal');
+    const openBtn = document.getElementById('open-settings-btn');
+    const closeBtn = document.getElementById('close-settings');
+    const saveBtn = document.getElementById('save-settings');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const toggleVisibility = document.getElementById('toggle-api-visibility');
+
+    if (!modal || !openBtn) return;
+
+    // Open Modal
+    openBtn.onclick = () => {
+        const currentKey = getGeminiApiKey() || '';
+        apiKeyInput.value = currentKey;
+        modal.classList.remove('hidden');
+    };
+
+    // Close Modal
+    closeBtn.onclick = () => modal.classList.add('hidden');
+    window.onclick = (event) => {
+        if (event.target === modal) modal.classList.add('hidden');
+    };
+
+    // Toggle Input Visibility
+    toggleVisibility.onclick = () => {
+        const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+        apiKeyInput.type = type;
+        toggleVisibility.textContent = type === 'password' ? '👁️' : '🔒';
+    };
+
+    // Save Settings
+    saveBtn.onclick = () => {
+        const newKey = apiKeyInput.value.trim();
+        if (newKey) {
+            localStorage.setItem('GEMINI_API_KEY', newKey);
+            alert('Settings saved! Refreshing insights...');
+            modal.classList.add('hidden');
+            generateAIInsights(); // Re-trigger AI insights with new key
+        } else {
+            localStorage.removeItem('GEMINI_API_KEY');
+            alert('API Key removed. Fallback responses will be used.');
+            modal.classList.add('hidden');
+        }
+    };
+}
 
 // Auto-inject Tooltips for technical terms
 const TECH_TERMS = {
